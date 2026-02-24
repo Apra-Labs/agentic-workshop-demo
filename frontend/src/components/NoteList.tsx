@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { fetchNotes, createNote, type Note, type CreateNoteInput } from "../api";
+import { fetchNotes, createNote, updateNote, type Note, type CreateNoteInput } from "../api";
 import NoteCard from "./NoteCard";
 import NoteForm from "./NoteForm";
 import LoadingSpinner from "./LoadingSpinner";
@@ -10,6 +10,7 @@ function NoteList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [editingNote, setEditingNote] = useState<Note | undefined>(undefined);
 
   const loadNotes = () => {
     fetchNotes()
@@ -35,6 +36,23 @@ function NoteList() {
     loadNotes();
   };
 
+  const handleUpdate = async (input: CreateNoteInput) => {
+    if (!editingNote) return;
+    await updateNote(editingNote.id, input);
+    setEditingNote(undefined);
+    loadNotes();
+  };
+
+  const handleEdit = (note: Note) => {
+    setEditingNote(note);
+    setShowForm(false);
+  };
+
+  const handleCancel = () => {
+    setShowForm(false);
+    setEditingNote(undefined);
+  };
+
   if (loading) return <LoadingSpinner />;
   if (error && notes.length === 0) return <ErrorMessage message={error} />;
 
@@ -42,8 +60,10 @@ function NoteList() {
     <div>
       {error && <ErrorMessage message={error} />}
 
-      {showForm ? (
-        <NoteForm onSubmit={handleCreate} onCancel={() => setShowForm(false)} />
+      {editingNote ? (
+        <NoteForm note={editingNote} onSubmit={handleUpdate} onCancel={handleCancel} />
+      ) : showForm ? (
+        <NoteForm onSubmit={handleCreate} onCancel={handleCancel} />
       ) : (
         <button className="btn btn-primary btn-new" onClick={() => setShowForm(true)}>
           + New Note
@@ -55,7 +75,11 @@ function NoteList() {
       ) : (
         <div className="note-list">
           {notes.map((note) => (
-            <NoteCard key={note.id} note={note} />
+            <NoteCard
+              key={note.id}
+              note={note}
+              onEdit={handleEdit}
+            />
           ))}
         </div>
       )}

@@ -13,6 +13,8 @@ export interface CreateNoteInput {
   tags: string[];
 }
 
+export type UpdateNoteInput = Partial<CreateNoteInput>;
+
 const API_BASE = "/api/notes";
 
 export async function fetchNotes(): Promise<Note[]> {
@@ -31,6 +33,18 @@ export async function createNote(input: CreateNoteInput): Promise<Note> {
   });
   if (!response.ok) {
     throw new Error(`Failed to create note: ${response.status} ${response.statusText}`);
+  }
+  return response.json();
+}
+
+export async function updateNote(id: string, input: UpdateNoteInput): Promise<Note> {
+  const response = await fetch(`${API_BASE}/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to update note: ${response.status} ${response.statusText}`);
   }
   return response.json();
 }

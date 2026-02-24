@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { fetchNotes, createNote } from "../api";
+import { fetchNotes, createNote, updateNote } from "../api";
 
 beforeEach(() => {
   vi.restoreAllMocks();
@@ -80,5 +80,29 @@ describe("createNote", () => {
     await expect(createNote({ title: "", content: "", tags: [] })).rejects.toThrow(
       "Failed to create note: 400 Bad Request"
     );
+  });
+});
+
+describe("updateNote", () => {
+  it("sends PUT with updated data", async () => {
+    const input = { title: "Updated" };
+    const updated = { id: "1", title: "Updated", content: "Body", tags: [], createdAt: "2024-01-01T00:00:00.000Z", updatedAt: "2024-01-01T00:00:00.000Z" };
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(updated),
+      })
+    );
+
+    const result = await updateNote("1", input);
+
+    expect(fetch).toHaveBeenCalledWith("/api/notes/1", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
+    expect(result).toEqual(updated);
   });
 });

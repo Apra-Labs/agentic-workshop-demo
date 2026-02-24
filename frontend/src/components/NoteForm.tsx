@@ -1,15 +1,16 @@
 import { useState } from "react";
-import type { CreateNoteInput } from "../api";
+import type { Note, CreateNoteInput } from "../api";
 
 interface NoteFormProps {
+  note?: Note;
   onSubmit: (input: CreateNoteInput) => Promise<void>;
   onCancel: () => void;
 }
 
-function NoteForm({ onSubmit, onCancel }: NoteFormProps) {
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [tagsInput, setTagsInput] = useState("");
+function NoteForm({ note, onSubmit, onCancel }: NoteFormProps) {
+  const [title, setTitle] = useState(note?.title ?? "");
+  const [content, setContent] = useState(note?.content ?? "");
+  const [tagsInput, setTagsInput] = useState(note?.tags.join(", ") ?? "");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,7 +39,7 @@ function NoteForm({ onSubmit, onCancel }: NoteFormProps) {
 
   return (
     <form className="note-form" onSubmit={handleSubmit}>
-      <h2>New Note</h2>
+      <h2>{note ? "Edit Note" : "New Note"}</h2>
       {error && <p className="form-error">{error}</p>}
       <label>
         Title
@@ -69,7 +70,7 @@ function NoteForm({ onSubmit, onCancel }: NoteFormProps) {
       </label>
       <div className="form-actions">
         <button type="submit" className="btn btn-primary" disabled={submitting}>
-          {submitting ? "Saving..." : "Create Note"}
+          {submitting ? "Saving..." : note ? "Save Changes" : "Create Note"}
         </button>
         <button type="button" className="btn btn-secondary" onClick={onCancel} disabled={submitting}>
           Cancel
