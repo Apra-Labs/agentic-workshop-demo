@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { fetchNotes, createNote, updateNote, type Note, type CreateNoteInput } from "../api";
+import { fetchNotes, createNote, updateNote, deleteNote, type Note, type CreateNoteInput } from "../api";
 import NoteCard from "./NoteCard";
 import NoteForm from "./NoteForm";
 import LoadingSpinner from "./LoadingSpinner";
@@ -43,6 +43,15 @@ function NoteList() {
     loadNotes();
   };
 
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteNote(id);
+      loadNotes();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to delete note.");
+    }
+  };
+
   const handleEdit = (note: Note) => {
     setEditingNote(note);
     setShowForm(false);
@@ -79,6 +88,7 @@ function NoteList() {
               key={note.id}
               note={note}
               onEdit={handleEdit}
+              onDelete={handleDelete}
             />
           ))}
         </div>

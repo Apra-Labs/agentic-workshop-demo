@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { fetchNotes, createNote, updateNote } from "../api";
+import { fetchNotes, createNote, updateNote, deleteNote } from "../api";
 
 beforeEach(() => {
   vi.restoreAllMocks();
@@ -104,5 +104,29 @@ describe("updateNote", () => {
       body: JSON.stringify(input),
     });
     expect(result).toEqual(updated);
+  });
+});
+
+describe("deleteNote", () => {
+  it("sends DELETE request", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true })
+    );
+
+    await deleteNote("1");
+
+    expect(fetch).toHaveBeenCalledWith("/api/notes/1", { method: "DELETE" });
+  });
+
+  it("throws on failure", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: false, status: 404, statusText: "Not Found" })
+    );
+
+    await expect(deleteNote("999")).rejects.toThrow(
+      "Failed to delete note: 404 Not Found"
+    );
   });
 });

@@ -48,3 +48,12 @@ export async function updateNote(id: string, input: UpdateNoteInput): Promise<No
   }
   return response.json();
 }
+
+export async function deleteNote(id: string): Promise<void> {
+  const response = await fetch(`${API_BASE}/${id}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to delete note: ${response.status} ${response.statusText}`);
+  }
+}
