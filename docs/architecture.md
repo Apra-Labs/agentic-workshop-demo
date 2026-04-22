@@ -11,6 +11,7 @@ This pattern keeps stores swappable: replacing the Map with a database client re
 ```
 src/api/notes.ts  →  src/models/note.ts
                   →  src/models/share.ts   (cascade delete only)
+                  →  src/utils/validation.ts
 
 src/api/shares.ts →  src/models/note.ts
                   →  src/models/share.ts
