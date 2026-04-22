@@ -2,19 +2,30 @@
 
 **Reviewer:** workshop-rev
 **Date:** 2026-04-21 20:44:19-0400
-**Verdict:** CHANGES NEEDED
+**Verdict:** ~~CHANGES NEEDED~~ → **APPROVED** (re-review 2026-04-21 20:48:41-0400)
 
 ---
 
-## Phase 1 Code Review
+## Phase 1 Re-Review
 
-**Verdict:** CHANGES NEEDED
+**Verdict:** APPROVED
 
-### FAIL — Extra `token` field in Share interface
+### ~~FAIL~~ → PASS — Extra `token` field in Share interface
 
 The requirements spec states `id: string; // same as shareToken` — the crypto token IS the ID. Implementation incorrectly added a separate `token` field alongside `id`, plus a `getByToken()` O(n) linear scan method.
 
-**Doer:** fixed in commit `98d01fc` — removed standalone `token` field, removed `getByToken()`, callers use `getById(token)` for O(1) lookup
+**Doer:** fixed in commit `0420d76` — removed standalone `token` field, removed `getByToken()`, callers use `getById(token)` for O(1) lookup
+
+**Re-review verification:**
+- `token` field removed from `Share` interface ✓
+- `getByToken()` method removed from `shareStore` ✓
+- `id` field annotated with `// same as shareToken` comment ✓
+- Interface now has exactly 5 fields matching requirements: `id`, `noteId`, `permission`, `expiresAt`, `createdAt` ✓
+- Store now has exactly 6 methods matching the plan: `getAll`, `getById`, `create`, `delete`, `deleteByNoteId`, `clear` ✓
+- Build clean (`tsc --noEmit` — 0 errors) ✓
+- Tests: 21 passed, 0 failed, 0 regressions ✓
+
+Phase 1 is ready for Phase 2 to build on.
 
 > See the recent git history of this file to understand the context of this review.
 
