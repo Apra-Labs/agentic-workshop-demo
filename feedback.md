@@ -1,108 +1,107 @@
-# Note Sharing — Plan Review
+# Note Sharing — Phase 1 Review
 
 **Reviewer:** workshop-rev
-**Date:** 2026-04-21 20:35:11-0400
-**Verdict:** APPROVED
+**Date:** 2026-04-21 20:44:19-0400
+**Verdict:** CHANGES NEEDED
 
 > See the recent git history of this file to understand the context of this review.
 
 ---
 
-## 1. Clear "Done" Criteria — PASS
+## Data Model (src/models/share.ts)
 
-Every task has explicit, verifiable completion criteria. Tasks 1 and 5 are the strongest: Task 1 gates on `npm run build` success and verifiable exports; Task 5 gates on `npm test` passing all 7 new tests with zero regressions. Tasks 2–4 define behavioral criteria ("validation correctly rejects…", "all three endpoints return the correct status codes…") but defer verification to Phase 3 tests. This deferral is acceptable because each phase ends with a VERIFY checkpoint that catches build and regression failures before moving on. A developer would know when each task is complete.
+**Check 6 — Share interface fields vs requirements data model: FAIL.**
 
----
+The requirements specify this data model:
 
-## 2. Cohesion and Coupling — PASS
+```
+interface Share {
+  id: string;           // same as shareToken
+  noteId: string;
+  permission: 'read' | 'edit' | 'admin';
+  createdAt: string;
+  expiresAt: string | null;
+}
+```
 
-Each task has a single, well-bounded responsibility: Task 1 is the data model, Task 2 is input validation, Task 3 is the HTTP layer, Task 4 is a one-line cross-module side-effect, Task 5 is the test suite. The only coupling across tasks is intentional and one-directional (Tasks 3 and 4 import from Task 1; Task 3 calls Task 2). No task modifies another task's output. Tasks 3 and 4 are independent within Phase 2 — neither requires the other.
+The comment `// same as shareToken` is the key constraint: the share's `id` IS the cryptographically-generated token. The implementation instead introduces a separate `token: string` field (line 6 of `src/models/share.ts`) that is not in the requirements, and does not establish that `id` equals the token. This has three consequences:
 
----
+1. **Extra field not in the spec.** The `token` field is an addition to the data model that the requirements do not call for. This means Phase 2 must populate both `id` and `token` when creating a share, and any consumer of the Share type must understand the distinction — added cognitive load with no benefit.
 
-## 3. Key Abstractions in Earliest Tasks — PASS
+2. **Unnecessary O(n) lookup method.** Because `id` and `token` are separated, the store needs a `getByToken()` method (line 23) that does a linear scan over all shares: `Array.from(shares.values()).find(...)`. If `id` were the token (as specified), `getById(token)` would be an O(1) Map lookup — the same pattern used by `noteStore.getById()`. The `getByToken` method also was not in the plan (Task 1 specifies six methods: getAll, getById, create, delete, deleteByNoteId, clear), so it is unplanned scope.
 
-The two shared abstractions — the `Share` interface with `shareStore` (Task 1) and `validateCreateShareInput` (Task 2) — are both in Phase 1. Every later task (3, 4, 5) consumes at least one of them. Nothing in Phase 2 or 3 introduces a new shared interface. The layering is correct.
+3. **Ambiguity for Phase 2.** The router in Phase 2 will receive `token` from URL params. With the current design, it must call `getByToken(token)` to find the share, then use `share.id` for deletion. If `id === token`, it simply calls `getById(token)` and `delete(token)` — cleaner, and matching the plan's description in Task 3 ("look up share by token").
 
----
+**Fix:** Remove the `token` field from the `Share` interface. Remove `getByToken()`. When Phase 2 creates a share, set `id` to `crypto.randomBytes(16).toString('hex')`. All token-based lookups use `getById(token)` directly.
 
-## 4. Riskiest Assumption Validated First — PASS
+**Check 3 — Will later tasks build cleanly on these abstractions: NOTE.**
 
-The riskiest foundational assumption is that the Map-based store pattern from `noteStore` extends cleanly to shares, including the non-obvious `deleteByNoteId(noteId)` method needed for cascade deletes. Task 1 validates this immediately with a build check. The next riskiest item — routing integration with `app.ts` — is covered in Task 3's VERIFY checkpoint and explicitly called out in the risk register. Ordering is sound.
+Despite the `token` field issue, the store IS functionally sufficient for Phase 2. All six planned methods are present (plus the extra `getByToken`). `deleteByNoteId` correctly iterates and deletes from the Map during iteration, which is safe per the ECMAScript Map iterator spec. `create()`, `delete()`, `getAll()`, and `clear()` follow the `noteStore` pattern exactly.
 
----
+If the `token` field is removed as recommended, Phase 2 will build more cleanly — `getById` replaces `getByToken`, and the DELETE handler uses the same `id` from the URL param without an intermediate lookup.
 
-## 5. Later Tasks Reuse Early Abstractions (DRY) — PASS
+**Check 9 — TypeScript types, exports, naming: PASS.**
 
-Task 3 calls `shareStore.create()`, `shareStore.getById()`, `shareStore.delete()` from Task 1 and `validateCreateShareInput()` from Task 2. Task 4 calls `shareStore.deleteByNoteId()` from Task 1. Task 5 calls `shareStore.clear()` and `shareStore.create()` for test setup. No duplication of store logic or validation in later tasks.
+`SharePermission` type is exported and correctly defined as the union `'read' | 'edit' | 'admin'`. The `Share` interface and `shareStore` are both exported. The `expiresAt: string | null` type (check 7) is correct and explicit — `null` represents no expiry, matching the requirements. `createdAt: string` is present. No TypeScript errors on build (`tsc --noEmit` clean). The `SharePermission` type alias is a good addition — not in the requirements but useful for both the interface and the validation function, keeping the permission values defined in one place.
 
----
+**Check 1 — Done criteria met: PASS with NOTE.**
 
-## 6. 2–3 Work Tasks per Phase with VERIFY — PASS
-
-Phase 1 has 2 tasks + VERIFY. Phase 2 has 2 tasks + VERIFY. Phase 3 has 1 task + VERIFY. Phase 3 is below the 2–3 target, but the single test task is substantial (7 integration tests covering all endpoints plus the cascade) and would not benefit from artificial splitting. All three VERIFY checkpoints prescribe build, test, and reporting steps. Structure is sound.
-
----
-
-## 7. Each Task Completable in One Session — PASS
-
-Task 1: one new file following an established pattern (~50 lines). Task 2: one function added to an existing file (~30 lines). Task 3: one new file plus a two-line `app.ts` modification — the largest task but still well-scoped (~80 lines). Task 4: a two-line edit to an existing handler. Task 5: one test file with 7 tests following established supertest patterns (~100 lines). All are single-session work.
-
----
-
-## 8. Dependencies Satisfied in Order — PASS
-
-Task 1 and 2 have no blockers. Task 3 depends on Task 1 (shareStore) and Task 2 (validation) — both completed in Phase 1 before Phase 2 begins. Task 4 depends on Task 1 (shareStore.deleteByNoteId) — also completed in Phase 1. Task 5 depends on all of Tasks 1–4, which are all complete before Phase 3. Within Phase 2, Tasks 3 and 4 are independent of each other — no ordering constraint between them. No dependency violations.
+Task 1's done criteria: "compiles without errors; the store exports the Share interface and all six methods." The build is clean and all six planned methods are exported. However, the implementation also exports a seventh method (`getByToken`) and an extra interface field (`token`) — both beyond the task scope. The done criteria are technically met, but the implementation over-delivers in a way that deviates from requirements.
 
 ---
 
-## 9. Ambiguous Tasks — PASS with NOTE
+## Validation Helper (src/utils/validation.ts)
 
-**NOTE — Task 3 routing design:** The plan mounts the shares router at `/api` with routes `/notes/:id/shares` and `/shares/:token` in a single router. This is a valid but somewhat unusual pattern — a single router handling two different path prefixes. The plan is explicit enough about the mount point (`app.use('/api', sharesRouter)`) that two developers should arrive at the same result. The risk register correctly flags the mount-order dependency.
+**Check 5 — Requirements alignment: PASS.**
 
-**NOTE — Task 1 interface fields:** The plan says "defining the Share interface" but does not list the fields (id, noteId, permission, createdAt, expiresAt). These are specified in `requirements.md`, so the implementer can derive them, but a self-contained plan would enumerate the fields directly. Low risk — the requirements are unambiguous.
+`validateCreateShareInput` validates exactly what the requirements and plan specify: `permission` is required and must be one of `'read' | 'edit' | 'admin'`; `expiresInMinutes` is optional but when present must be a positive integer. The function returns the same discriminated union pattern (`{ valid: true; data } | { valid: false; errors }`) used by `validateCreateInput` and `validateUpdateInput`. The `CreateShareData` interface is properly exported for Phase 2 to consume.
 
-**NOTE — Task 3 Share object construction:** The plan describes generating the token and computing expiresAt, but does not explicitly mention setting `createdAt`, `id` (= token), and `noteId` (= req.params.id) when constructing the Share object for `shareStore.create()`. An experienced developer would infer these, but spelling them out would eliminate any doubt.
+**Check 10 — Security / input validation gaps: PASS.**
 
----
+The permission validation handles all edge cases correctly:
+- `undefined` permission → not in `VALID_PERMISSIONS` array → rejected ✓
+- `null` permission → not in array → rejected ✓
+- Empty string → not in array → rejected ✓
+- Arbitrary strings (`'superadmin'`) → not in array → rejected ✓
+- All three valid values → accepted ✓
 
-## 10. Hidden Dependencies — PASS
+For `expiresInMinutes`, the check `typeof exp !== 'number' || !Number.isInteger(exp) || exp <= 0` correctly rejects: non-numbers, floats (e.g. `1.5`), zero, negative values, `NaN`, and `Infinity`. This is thorough.
 
-No hidden dependencies found. Tasks 3 and 4 within Phase 2 are truly independent. Task 5 correctly depends on all prior tasks. The cross-module dependency in Task 4 (notes.ts importing from share.ts) is explicitly acknowledged and confirmed one-directional. The `crypto` module used in Task 3 is a Node.js built-in — no install dependency. The VERIFY checkpoints catch regressions from modifications to existing files (validation.ts in Task 2, notes.ts in Task 4, app.ts in Task 3).
+**Check 10 (continued) — `expiresInMinutes: null` edge case: NOTE.**
 
----
+If a client sends `{ "permission": "read", "expiresInMinutes": null }`, the validator enters the `expiresInMinutes !== undefined` branch (because `null !== undefined` is `true`), then rejects it since `typeof null` is `'object'`. This is arguably correct — the spec says the field is either a positive integer or absent, not explicitly `null`. But some API consumers treat `null` as equivalent to omission for optional fields. This is a stylistic choice, not a bug — just worth noting for Phase 2 documentation. No change required.
 
-## 11. Risk Register — PASS with NOTE
+**Check 2 — Cohesion and coupling: PASS.**
 
-The risk register covers five risks with concrete mitigations. All five are legitimate and the mitigations are sound (especially the pre-expired share injection for test flakiness and the strictly-greater-than comparison for expiry).
+The validation function imports only `SharePermission` from `src/models/share.ts` — a clean, narrow dependency. The `CreateShareData` type is defined in validation.ts alongside the function that produces it, matching the existing pattern where `validateCreateInput` returns `CreateNoteInput` (defined in note.ts, but that's because it's also used by the model). The `VALID_PERMISSIONS` array is module-scoped, not exported — correct, since it's an implementation detail of the validation function.
 
-**Two additional risks not in the register:**
+**Check 8 — Store methods sufficient for Phase 2 router: PASS.**
 
-1. **Orphaned share on GET resolve.** If a share exists but its parent note has been deleted without cascade (e.g., direct store manipulation in tests, or a cascade bug), `GET /api/shares/:token` would call `noteStore.getById(noteId)` and get `undefined`, then pass it to `res.json()`. This produces a `200` with a `null`/empty body — confusing behavior. Mitigation: Task 3's GET handler should check the note lookup result and return 404 if the note is gone. In practice, cascade delete (Task 4) makes this near-impossible in normal API usage, so this is low-severity.
+Between the store and validation, Phase 2 has everything it needs: `validateCreateShareInput` to validate request bodies, `shareStore.create()` to persist, `shareStore.getById()` (or `getByToken()` until fixed) to resolve tokens, `shareStore.delete()` to revoke, and `shareStore.deleteByNoteId()` for cascade. No modifications to Phase 1 code will be needed in Phase 2 — only consumption.
 
-2. **Null expiresAt in expiry check.** When a share has no expiry (`expiresAt: null`), the comparison `Date.now() > new Date(null).getTime()` evaluates to `Date.now() > NaN`, which is `false` — correctly passing the check. But this relies on NaN comparison semantics rather than an explicit null guard. A future developer might refactor the comparison and break it. Mitigation: add an explicit `if (share.expiresAt !== null)` guard before the date comparison. Low-severity but worth documenting.
+**Check 4 — Riskiest assumption validated: PASS.**
 
----
-
-## 12. Requirements Alignment — PASS
-
-The plan covers every requirement in `requirements.md`:
-- All three endpoints (POST create, GET resolve, DELETE revoke) with correct paths, status codes, and response shapes
-- The Share data model with in-memory store
-- Cascade delete on note removal
-- All seven required test cases, each mapped 1:1 to the requirements list
-- Cryptographic token generation via `crypto.randomBytes`
-
-No requirements are missed, and no scope is added beyond what is needed (the `deleteByNoteId` store method is a necessary implementation detail for cascade, not scope creep).
+The build succeeds, confirming the Map-based store pattern extends to shares. The validation function compiles and follows the established discriminated-union pattern. All 21 existing tests pass (8 validation, 13 notes), confirming zero regressions from modifying `validation.ts`.
 
 ---
 
 ## Summary
 
-The plan **passes all 12 checks**. It is well-structured with correct phasing, proper dependency ordering, clear done criteria, and a solid risk register. Three notes for the implementer to be aware of:
+**Phase 1 VERIFY results:** Build clean (0 TypeScript errors). Tests: 21 passed, 0 failed, 0 regressions.
 
-1. **Orphaned share edge case** — the GET /api/shares/:token handler should defensively check that the note still exists after looking up the share, returning 404 if not. This isn't in the plan but is cheap to add during Task 3.
-2. **Null expiresAt guard** — use an explicit null check before the date comparison rather than relying on NaN semantics.
-3. **Share object construction** — Task 3 should set all Share interface fields (id, noteId, permission, createdAt, expiresAt) when calling shareStore.create().
+**One required change:**
 
-None of these rise to CHANGES NEEDED — they are implementation-time clarifications, not structural plan defects. The plan is ready to execute.
+1. **FAIL — `token` field in Share interface.** Remove the `token` field from the `Share` interface and the `getByToken()` method from `shareStore`. The requirements specify `id` is the share token (`id: string; // same as shareToken`). Use `id` as the crypto-generated token and look up shares via `getById(token)` — O(1) Map lookup instead of O(n) scan. This simplifies the data model, removes unplanned scope, and makes Phase 2 integration cleaner.
+
+**Everything else passes:**
+
+- Validation logic is correct and thorough for all specified edge cases
+- `expiresAt: string | null` handling is explicit and correct
+- Store methods (after fix) are sufficient for Phase 2 without modification
+- No TypeScript errors, no test regressions, no security issues
+- Pattern consistency with existing `noteStore` and validation functions is strong
+
+**Deferred (not blocking):**
+
+- The `expiresInMinutes: null` rejection is a stylistic choice — document in Phase 2 if relevant
+- Previous plan review notes (orphaned share check, explicit null guard on expiry comparison) remain applicable to Phase 2 implementation
