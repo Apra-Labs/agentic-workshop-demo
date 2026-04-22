@@ -1,0 +1,80 @@
+{
+  "_schema": {
+    "type": "work | verify",
+    "status": "pending | completed | blocked"
+  },
+  "project": "agentic-workshop-demo",
+  "plan_file": "PLAN.md",
+  "created": "2026-04-21",
+  "tasks": [
+    {
+      "id": 1,
+      "step": "Share model and in-memory store",
+      "type": "work",
+      "status": "completed",
+      "tier": "cheap",
+      "commit": "77e0020",
+      "notes": "src/models/share.ts created with Share interface, SharePermission type, and shareStore with all 6 methods (getAll, getById, getByToken, create, delete, deleteByNoteId, clear)"
+    },
+    {
+      "id": 2,
+      "step": "Share validation helper",
+      "type": "work",
+      "status": "completed",
+      "tier": "standard",
+      "commit": "77e0020",
+      "notes": "validateCreateShareInput added to src/utils/validation.ts — validates permission (read|edit|admin required) and optional expiresInMinutes (positive integer). Handles null/undefined expiresAt explicitly."
+    },
+    {
+      "id": 3,
+      "step": "VERIFY: Phase 1",
+      "type": "verify",
+      "status": "completed",
+      "commit": "77e0020",
+      "notes": "BUILD: npm run build — clean, 0 TypeScript errors. TESTS: 21 passed, 0 failed (notes.test.ts + validation.test.ts). No regressions from adding to validation.ts. shareStore exports confirmed callable."
+    },
+    {
+      "id": 4,
+      "step": "Shares router with three endpoints",
+      "type": "work",
+      "status": "pending",
+      "tier": "standard",
+      "commit": "",
+      "notes": ""
+    },
+    {
+      "id": 5,
+      "step": "Cascade delete shares on note deletion",
+      "type": "work",
+      "status": "pending",
+      "tier": "cheap",
+      "commit": "",
+      "notes": ""
+    },
+    {
+      "id": 6,
+      "step": "VERIFY: Phase 2",
+      "type": "verify",
+      "status": "pending",
+      "commit": "",
+      "notes": ""
+    },
+    {
+      "id": 7,
+      "step": "Integration tests for sharing feature",
+      "type": "work",
+      "status": "pending",
+      "tier": "standard",
+      "commit": "",
+      "notes": ""
+    },
+    {
+      "id": 8,
+      "step": "VERIFY: Phase 3",
+      "type": "verify",
+      "status": "pending",
+      "commit": "",
+      "notes": ""
+    }
+  ]
+}
