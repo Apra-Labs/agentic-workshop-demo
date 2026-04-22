@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { v4 as uuidv4 } from "uuid";
 import { noteStore, Note } from "../models/note";
+import { shareStore } from "../models/share";
 import { validateCreateInput, validateUpdateInput } from "../utils/validation";
 
 const router = Router();
@@ -85,6 +86,7 @@ router.delete("/:id", (req: Request<{ id: string }>, res: Response) => {
     res.status(404).json({ error: "Note not found" });
     return;
   }
+  shareStore.deleteByNoteId(req.params.id);
   res.status(204).send();
 });
 
