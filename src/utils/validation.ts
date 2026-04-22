@@ -1,4 +1,10 @@
 import { CreateNoteInput, UpdateNoteInput } from "../models/note";
+import { SharePermission } from "../models/share";
+
+export interface CreateShareData {
+  permission: SharePermission;
+  expiresInMinutes?: number;
+}
 
 export interface ValidationError {
   field: string;
@@ -73,6 +79,42 @@ export function validateUpdateInput(
   if (obj.title !== undefined) data.title = (obj.title as string).trim();
   if (obj.content !== undefined) data.content = obj.content as string;
   if (obj.tags !== undefined) data.tags = obj.tags as string[];
+
+  return { valid: true, data };
+}
+
+const VALID_PERMISSIONS: SharePermission[] = ['read', 'edit', 'admin'];
+
+export function validateCreateShareInput(
+  body: unknown
+): { valid: true; data: CreateShareData } | { valid: false; errors: ValidationError[] } {
+  const errors: ValidationError[] = [];
+
+  if (!body || typeof body !== 'object') {
+    return { valid: false, errors: [{ field: 'body', message: 'Request body must be a JSON object' }] };
+  }
+
+  const obj = body as Record<string, unknown>;
+
+  if (!VALID_PERMISSIONS.includes(obj.permission as SharePermission)) {
+    errors.push({ field: 'permission', message: "Permission is required and must be one of 'read', 'edit', or 'admin'" });
+  }
+
+  if (obj.expiresInMinutes !== undefined) {
+    const exp = obj.expiresInMinutes;
+    if (typeof exp !== 'number' || !Number.isInteger(exp) || exp <= 0) {
+      errors.push({ field: 'expiresInMinutes', message: 'expiresInMinutes must be a positive integer' });
+    }
+  }
+
+  if (errors.length > 0) return { valid: false, errors };
+
+  const data: CreateShareData = {
+    permission: obj.permission as SharePermission,
+  };
+  if (obj.expiresInMinutes !== undefined) {
+    data.expiresInMinutes = obj.expiresInMinutes as number;
+  }
 
   return { valid: true, data };
 }
