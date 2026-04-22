@@ -37,27 +37,27 @@
       "id": 4,
       "step": "Shares router with three endpoints",
       "type": "work",
-      "status": "pending",
+      "status": "completed",
       "tier": "standard",
-      "commit": "",
-      "notes": ""
+      "commit": "b55f791",
+      "notes": "src/api/shares.ts created with POST /api/notes/:id/shares (201), GET /api/shares/:token (200/403/404), DELETE /api/shares/:token (204). Mounted at /api in app.ts after notes router. Defensive note existence check in GET. Expiry uses Date.now() > new Date(expiresAt).getTime() strictly."
     },
     {
       "id": 5,
       "step": "Cascade delete shares on note deletion",
       "type": "work",
-      "status": "pending",
+      "status": "completed",
       "tier": "cheap",
-      "commit": "",
-      "notes": ""
+      "commit": "933da08",
+      "notes": "shareStore imported in notes.ts; shareStore.deleteByNoteId(id) called after noteStore.delete succeeds in DELETE /:id handler."
     },
     {
       "id": 6,
       "step": "VERIFY: Phase 2",
       "type": "verify",
-      "status": "pending",
-      "commit": "",
-      "notes": ""
+      "status": "completed",
+      "commit": "933da08",
+      "notes": "BUILD: npm run build — clean, 0 TypeScript errors. TESTS: 21 passed, 0 failed (all existing tests pass, no regressions). Shares router and cascade delete in place."
     },
     {
       "id": 7,
