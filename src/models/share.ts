@@ -1,9 +1,8 @@
 export type SharePermission = 'read' | 'edit' | 'admin';
 
 export interface Share {
-  id: string;
+  id: string; // same as shareToken — the crypto token is the ID
   noteId: string;
-  token: string;
   permission: SharePermission;
   expiresAt: string | null;
   createdAt: string;
@@ -18,10 +17,6 @@ export const shareStore = {
 
   getById(id: string): Share | undefined {
     return shares.get(id);
-  },
-
-  getByToken(token: string): Share | undefined {
-    return Array.from(shares.values()).find((s) => s.token === token);
   },
 
   create(share: Share): Share {

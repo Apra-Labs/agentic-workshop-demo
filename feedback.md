@@ -4,6 +4,18 @@
 **Date:** 2026-04-21 20:44:19-0400
 **Verdict:** CHANGES NEEDED
 
+---
+
+## Phase 1 Code Review
+
+**Verdict:** CHANGES NEEDED
+
+### FAIL — Extra `token` field in Share interface
+
+The requirements spec states `id: string; // same as shareToken` — the crypto token IS the ID. Implementation incorrectly added a separate `token` field alongside `id`, plus a `getByToken()` O(n) linear scan method.
+
+**Doer:** fixed in commit `<sha>` — removed standalone `token` field, removed `getByToken()`, callers use `getById(token)` for O(1) lookup
+
 > See the recent git history of this file to understand the context of this review.
 
 ---
