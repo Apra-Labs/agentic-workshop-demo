@@ -14,7 +14,7 @@
 
 The requirements spec states `id: string; // same as shareToken` — the crypto token IS the ID. Implementation incorrectly added a separate `token` field alongside `id`, plus a `getByToken()` O(n) linear scan method.
 
-**Doer:** fixed in commit `<sha>` — removed standalone `token` field, removed `getByToken()`, callers use `getById(token)` for O(1) lookup
+**Doer:** fixed in commit `98d01fc` — removed standalone `token` field, removed `getByToken()`, callers use `getById(token)` for O(1) lookup
 
 > See the recent git history of this file to understand the context of this review.
 
